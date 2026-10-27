@@ -88,7 +88,8 @@ def test_update_cafe_price_requires_valid_api_key(api_client, cafe):
         format="json",
     )
 
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert "detail" in response.data
     cafe.refresh_from_db()
     assert cafe.coffee_price == Decimal("2.50")
 
@@ -111,14 +112,16 @@ def test_add_cafe_requires_valid_api_key(api_client):
         format="json",
     )
 
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert "detail" in response.data
     assert not Cafe.objects.filter(name="New Cafe").exists()
 
 
 def test_delete_cafe_requires_valid_api_key(api_client, cafe):
     response = api_client.delete(reverse("delete-cafe", args=[cafe.pk]))
 
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert "detail" in response.data
     assert Cafe.objects.filter(pk=cafe.pk).exists()
 
 
@@ -250,7 +253,8 @@ def test_write_rejects_incorrect_api_key(api_client, cafe, cafe_payload, method,
     payload = cafe_payload if method == "post" else {"coffee_price": "3.00"}
     response = getattr(api_client, method)(url, payload, format="json")
 
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert "detail" in response.data
     assert Cafe.objects.count() == 1
     cafe.refresh_from_db()
     assert cafe.coffee_price == Decimal("2.50")

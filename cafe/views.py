@@ -1,19 +1,9 @@
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from django.conf import settings
 
 from cafe.models import Cafe
 from cafe.serializers import CafePriceSerializer, CafeSerializer
-
-
-def require_api_key(request):
-    api_key = request.headers.get("X-API-KEY")
-
-    if api_key != settings.API_KEY:
-        return Response({"error": "Invalid or missing API key."}, status=status.HTTP_401_UNAUTHORIZED)
-
-    return None
 
 
 @api_view(["GET"])
@@ -56,10 +46,6 @@ def search_cafe(request):
 
 @api_view(["POST"])
 def add_cafe(request):
-    auth_error = require_api_key(request)
-    if auth_error is not None:
-        return auth_error
-
     serializer = CafeSerializer(data=request.data)
 
     if serializer.is_valid():
@@ -70,10 +56,6 @@ def add_cafe(request):
 
 @api_view(["PATCH"])
 def update_cafe_price(request, pk):
-    auth_error = require_api_key(request)
-    if auth_error is not None:
-        return auth_error
-
     try:
         cafe = Cafe.objects.get(pk=pk)
     except Cafe.DoesNotExist:
@@ -88,10 +70,6 @@ def update_cafe_price(request, pk):
 
 @api_view(["DELETE"])
 def delete_cafe(request, pk):
-    auth_error = require_api_key(request)
-    if auth_error is not None:
-        return auth_error
-
     try:
         cafe = Cafe.objects.get(pk=pk)
     except Cafe.DoesNotExist:

@@ -50,7 +50,7 @@ The API runs at `http://127.0.0.1:8000`. The database starts empty; create cafes
 | PATCH | `/update-price/<id>/` | Update a cafe's price | Yes |
 | DELETE | `/delete/<id>/` | Delete a cafe | Yes |
 
-Write requests require the `X-API-KEY` header. Missing or incorrect keys return `401`. Invalid input returns `400`; missing cafes and empty list/search results return `404`. Collection responses are currently unpaginated.
+Write requests require the `X-API-KEY` header. A global DRF permission policy allows public reads and rejects writes with missing or incorrect keys with `403` and a `detail` error field. Invalid input returns `400`; missing cafes and empty list/search results return `404`. Collection responses are currently unpaginated.
 
 ### Create a Cafe
 

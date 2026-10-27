@@ -122,3 +122,7 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 API_KEY = os.environ["CAFE_API_KEY"]
+
+REST_FRAMEWORK = {
+    "DEFAULT_PERMISSION_CLASSES": ["cafe.permissions.ReadOnlyOrHasAPIKey"],
+}
