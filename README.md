@@ -50,7 +50,24 @@ The API runs at `http://127.0.0.1:8000`. The database starts empty; create cafes
 | PATCH | `/update-price/<id>/` | Update a cafe's price | Yes |
 | DELETE | `/delete/<id>/` | Delete a cafe | Yes |
 
-Write requests require the `X-API-KEY` header. A global DRF permission policy allows public reads and rejects writes with missing or incorrect keys with `403` and a `detail` error field. Invalid input returns `400`; missing cafes and empty list/search results return `404`. Collection responses are currently unpaginated.
+Write requests require the `X-API-KEY` header. A global DRF permission policy allows public reads and rejects writes with missing or incorrect keys with `403` and a `detail` error field. Invalid input returns `400`. Missing cafes and random selection from an empty database return `404`.
+
+### Pagination
+
+`/all/` and `/search/` return 10 cafes per page, ordered by ascending ID. Use `?page=2` or `/search/?loc=Buenos&page=2`, or follow the response's `next` and `previous` links. The location parameter is required for search.
+
+Collection responses use the following structure. Empty collections return `200` with this body:
+
+```json
+{
+  "count": 0,
+  "next": null,
+  "previous": null,
+  "results": []
+}
+```
+
+`count` is the total number of matches, not the page size. Invalid or out-of-range pages return `404`, including page 2 of an empty collection.
 
 ### Create a Cafe
 
@@ -96,3 +113,5 @@ python -m pytest
 ```
 
 Tests use pytest-django and DRF's API client with an isolated test database. They cover read endpoints, creation and deletion, price validation, and API-key protection.
+
+GitHub Actions runs Django checks, checks for missing migrations, and runs the test suite on Python 3.12, 3.13, and 3.14 for every push and pull request. CI uses test-only environment values and does not require repository secrets.
