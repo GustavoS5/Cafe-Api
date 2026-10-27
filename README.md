@@ -1,5 +1,7 @@
 # Cafe API
 
+[![Tests](https://github.com/GustavoS5/Cafe-Api/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/GustavoS5/Cafe-Api/actions/workflows/tests.yml)
+
 A REST API for cafe listings, built with Django, Django REST Framework, and SQLite. Supports location search, random cafe selection, and API-key-protected writes.
 
 ## Setup
