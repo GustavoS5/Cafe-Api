@@ -3,6 +3,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from cafe.models import Cafe
+from cafe.pagination import CafePagination
 from cafe.serializers import CafePriceSerializer, CafeSerializer
 
 
@@ -19,13 +20,11 @@ def get_random_cafe(request):
 
 @api_view(["GET"])
 def get_all_cafes(request):
-    cafes = Cafe.objects.all()
-
-    if not cafes.exists():
-        return Response({"error": "No cafes found."}, status=404)
-
-    serializer = CafeSerializer(cafes, many=True)
-    return Response(serializer.data)
+    cafes = Cafe.objects.order_by("id")
+    paginator = CafePagination()
+    page = paginator.paginate_queryset(cafes, request)
+    serializer = CafeSerializer(page, many=True)
+    return paginator.get_paginated_response(serializer.data)
 
 
 @api_view(["GET"])
@@ -35,13 +34,11 @@ def search_cafe(request):
     if not loc:
         return Response({"error": "Please provide a location."}, status=400)
 
-    cafes = Cafe.objects.filter(location__icontains=loc)
-
-    if not cafes.exists():
-        return Response({"error": "No cafes found in that location."}, status=404)
-
-    serializer = CafeSerializer(cafes, many=True)
-    return Response(serializer.data)
+    cafes = Cafe.objects.filter(location__icontains=loc).order_by("id")
+    paginator = CafePagination()
+    page = paginator.paginate_queryset(cafes, request)
+    serializer = CafeSerializer(page, many=True)
+    return paginator.get_paginated_response(serializer.data)
 
 
 @api_view(["POST"])

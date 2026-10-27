@@ -130,7 +130,10 @@ def test_get_all_cafes(api_client, cafe, cafe_payload):
     response = api_client.get(reverse("all-cafes"))
 
     assert response.status_code == status.HTTP_200_OK
-    assert {item["id"] for item in response.data} == {cafe.pk, other.pk}
+    assert [item["id"] for item in response.data["results"]] == [cafe.pk, other.pk]
+    assert response.data["count"] == 2
+    assert response.data["next"] is None
+    assert response.data["previous"] is None
 
 
 def test_get_random_cafe(api_client, cafe):
@@ -143,9 +146,8 @@ def test_get_random_cafe(api_client, cafe):
     assert response.data["currency"] == "USD"
 
 
-@pytest.mark.parametrize("route", ["all-cafes", "random-cafe"])
-def test_read_empty_database(api_client, route):
-    response = api_client.get(reverse(route))
+def test_random_cafe_empty_database(api_client):
+    response = api_client.get(reverse("random-cafe"))
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.data == {"error": "No cafes found."}
@@ -156,7 +158,8 @@ def test_search_matches_location_case_insensitively(api_client, cafe, cafe_paylo
     response = api_client.get(reverse("search-cafe"), {"loc": "bUeNoS"})
 
     assert response.status_code == status.HTTP_200_OK
-    assert [item["id"] for item in response.data] == [cafe.pk]
+    assert [item["id"] for item in response.data["results"]] == [cafe.pk]
+    assert response.data["count"] == 1
 
 
 @pytest.mark.parametrize("params", [{}, {"loc": ""}])
@@ -170,8 +173,8 @@ def test_search_requires_location(api_client, params):
 def test_search_no_matches(api_client, cafe):
     response = api_client.get(reverse("search-cafe"), {"loc": "Unknown"})
 
-    assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert response.data == {"error": "No cafes found in that location."}
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data == {"count": 0, "next": None, "previous": None, "results": []}
 
 
 def test_add_cafe_persists_all_fields(authorized_client, cafe_payload):
