@@ -106,8 +106,6 @@ curl -X PATCH http://127.0.0.1:8000/update-price/1/ \
 
 Price updates require a non-null amount. The existing currency is retained unless `currency` is supplied; setting a previously unknown price requires a currency. Other cafe fields are ignored by this endpoint.
 
-The price migration converts legacy pound-prefixed prices to decimal amounts with `GBP`. It stops on unrecognized values instead of guessing a currency or discarding data.
-
 ## Tests
 
 ```powershell
