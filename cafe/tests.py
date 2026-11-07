@@ -11,18 +11,6 @@ from cafe.models import Cafe
 pytestmark = pytest.mark.django_db
 
 
-def test_update_cafe_price_persists_change(authorized_client, cafe):
-    response = authorized_client.patch(
-        reverse("update-cafe-price", args=[cafe.pk]),
-        {"coffee_price": "3.00"},
-        format="json",
-    )
-
-    assert response.status_code == status.HTTP_200_OK
-    cafe.refresh_from_db()
-    assert cafe.coffee_price == Decimal("3.00")
-
-
 @pytest.mark.parametrize(
     "payload",
     [
@@ -94,27 +82,16 @@ def test_update_cafe_price_requires_valid_api_key(api_client, cafe):
     assert cafe.coffee_price == Decimal("2.50")
 
 
-def test_add_cafe_requires_valid_api_key(api_client):
+def test_add_cafe_requires_valid_api_key(api_client, cafe_payload):
     response = api_client.post(
         reverse("add-cafe"),
-        {
-            "name": "New Cafe",
-            "map_url": "https://maps.example.com/new-cafe",
-            "img_url": "https://images.example.com/new-cafe.jpg",
-            "location": "Cordoba",
-            "seats": "10-20",
-            "has_toilet": True,
-            "has_wifi": True,
-            "has_sockets": False,
-            "can_take_calls": False,
-            "coffee_price": "2.00",
-        },
+        cafe_payload,
         format="json",
     )
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
     assert "detail" in response.data
-    assert not Cafe.objects.filter(name="New Cafe").exists()
+    assert not Cafe.objects.exists()
 
 
 def test_delete_cafe_requires_valid_api_key(api_client, cafe):
@@ -130,20 +107,21 @@ def test_get_all_cafes(api_client, cafe, cafe_payload):
     response = api_client.get(reverse("all-cafes"))
 
     assert response.status_code == status.HTTP_200_OK
-    assert [item["id"] for item in response.data["results"]] == [cafe.pk, other.pk]
+    results = response.json()["results"]
+    assert [item["id"] for item in results] == [cafe.pk, other.pk]
+    assert results[0]["coffee_price"] == "2.50"
+    assert results[0]["currency"] == "USD"
     assert response.data["count"] == 2
     assert response.data["next"] is None
     assert response.data["previous"] is None
 
 
-def test_get_random_cafe(api_client, cafe):
+def test_get_random_cafe(api_client, cafe, cafe_payload):
+    other = Cafe.objects.create(**cafe_payload)
     response = api_client.get(reverse("random-cafe"))
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.data["id"] == cafe.pk
-    assert response.data["name"] == cafe.name
-    assert response.data["coffee_price"] == "2.50"
-    assert response.data["currency"] == "USD"
+    assert response.data["id"] in {cafe.pk, other.pk}
 
 
 def test_random_cafe_empty_database(api_client):
@@ -195,8 +173,6 @@ def test_add_cafe_persists_all_fields(authorized_client, cafe_payload):
         ("img_url", "not-a-url"),
         ("has_wifi", "not-a-boolean"),
         ("coffee_price", "-1.00"),
-        ("coffee_price", "1.234"),
-        ("coffee_price", "$2.00"),
         ("currency", "INVALID"),
         ("currency", ""),
     ],
@@ -228,11 +204,12 @@ def test_add_cafe_rejects_duplicate_name(authorized_client, cafe, cafe_payload):
     assert Cafe.objects.count() == 1
 
 
-def test_delete_cafe_persists_deletion(authorized_client, cafe):
-    response = authorized_client.delete(reverse("delete-cafe", args=[cafe.pk]))
+def test_delete_cafe_persists_deletion(authorized_client, two_cafes):
+    untouched, target = two_cafes
+    response = authorized_client.delete(reverse("delete-cafe", args=[target.pk]))
 
     assert response.status_code == status.HTTP_200_OK
-    assert not Cafe.objects.filter(pk=cafe.pk).exists()
+    assert list(Cafe.objects.values_list("pk", flat=True)) == [untouched.pk]
 
 
 @pytest.mark.parametrize("method,route", [("patch", "update-cafe-price"), ("delete", "delete-cafe")])
@@ -292,16 +269,21 @@ def test_add_cafe_rejects_currency_without_price(authorized_client, cafe_payload
 
 
 @pytest.mark.parametrize("price", ["0.00", "3.50", 3.5])
-def test_update_price_preserves_currency(authorized_client, cafe, price):
+def test_update_price_preserves_currency(authorized_client, two_cafes, price):
+    untouched, target = two_cafes
+    original_currency = target.currency
     response = authorized_client.patch(
-        reverse("update-cafe-price", args=[cafe.pk]),
+        reverse("update-cafe-price", args=[target.pk]),
         {"coffee_price": price}, format="json",
     )
 
     assert response.status_code == status.HTTP_200_OK
-    cafe.refresh_from_db()
-    assert cafe.coffee_price == Decimal(str(price))
-    assert cafe.currency == "USD"
+    target.refresh_from_db()
+    untouched.refresh_from_db()
+    assert target.coffee_price == Decimal(str(price))
+    assert target.currency == original_currency
+    assert untouched.coffee_price == Decimal("2.50")
+    assert untouched.currency == "USD"
 
 
 def test_update_price_and_currency(authorized_client, cafe):

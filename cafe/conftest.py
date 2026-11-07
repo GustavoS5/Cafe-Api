@@ -50,3 +50,9 @@ def cafe(db):
         coffee_price=Decimal("2.50"),
         currency="USD",
     )
+
+
+@pytest.fixture
+def two_cafes(cafe, cafe_payload):
+    other = Cafe.objects.create(**cafe_payload)
+    return cafe, other

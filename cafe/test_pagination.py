@@ -58,6 +58,14 @@ def test_empty_collection(api_client, route, params, page):
 
 
 @pytest.mark.parametrize("route,params", [("all-cafes", {}), ("search-cafe", {"loc": "Cordoba"})])
+def test_second_page_of_empty_collection_returns_404(api_client, route, params):
+    response = api_client.get(reverse(route), {**params, "page": 2})
+
+    assert response.status_code == 404
+    assert "detail" in response.data
+
+
+@pytest.mark.parametrize("route,params", [("all-cafes", {}), ("search-cafe", {"loc": "Cordoba"})])
 @pytest.mark.parametrize("page", ["0", "-1", "invalid", "1.5", "4"])
 def test_invalid_page(api_client, cafes, route, params, page):
     response = api_client.get(reverse(route), {**params, "page": page})
